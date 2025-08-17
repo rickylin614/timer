@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>20秒倒數計時器</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding-top: 20px;
+    }
+    #timer {
+      font-size: 48px;
+      margin: 20px 0;
+      transition: color 0.2s;
+    }
+    .blink {
+      color: red;
+      visibility: hidden;
+    }
+    button {
+      font-size: 16px;
+      padding: 6px 14px;
+      margin: 5px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #startBtn { background-color: #4CAF50; color: white; }
+    #stopBtn { background-color: #f44336; color: white; }
+  </style>
+</head>
+<body>
+  <h2>20秒倒數</h2>
+  <div id="timer">20</div>
+  <button id="startBtn">開始</button>
+  <button id="stopBtn">停止</button>
+
+  <script>
+    let countdown;
+    let timeLeft = 20;
+    let isRunning = false;
+    let blinkInterval;
+
+    const timerDisplay = document.getElementById('timer');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+
+    function startTimer() {
+      if (isRunning) return;
+      isRunning = true;
+      timeLeft = 19
+      countdown = setInterval(() => {
+        timerDisplay.textContent = timeLeft;
+
+        // 剩下 3 秒開始閃爍
+        if (timeLeft <= 3 && timeLeft > 0) {
+          if (!blinkInterval) {
+            blinkInterval = setInterval(() => {
+              timerDisplay.classList.toggle("blink");
+            }, 500);
+          }
+        }
+
+        timeLeft--;
+
+        if (timeLeft < 0) {
+          timeLeft = 20; // 重設倒數
+          clearInterval(blinkInterval);
+          blinkInterval = null;
+          timerDisplay.classList.remove("blink");
+        }
+      }, 1000);
+    }
+
+    function stopTimer() {
+      clearInterval(countdown);
+      clearInterval(blinkInterval);
+      blinkInterval = null;
+      isRunning = false;
+      timeLeft = 20;
+      timerDisplay.textContent = timeLeft;
+      timerDisplay.classList.remove("blink");
+    }
+
+    startBtn.addEventListener('click', startTimer);
+    stopBtn.addEventListener('click', stopTimer);
+  </script>
+</body>
+</html>

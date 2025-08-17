@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>20秒倒數計時器</title>
+  <title>倒數計時器</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -11,8 +11,13 @@
     }
     #timer {
       font-size: 48px;
-      margin: 20px 0;
+      margin: 20px 0 5px;
       transition: color 0.2s;
+    }
+    #count {
+      font-size: 20px;
+      margin-bottom: 20px;
+      color: #333;
     }
     .blink {
       color: red;
@@ -28,30 +33,59 @@
     }
     #startBtn { background-color: #4CAF50; color: white; }
     #stopBtn { background-color: #f44336; color: white; }
+    #setTimeBtn { background-color: #2196F3; color: white; }
+    #pipBtn { background-color: #FF9800; color: white; }
+    input {
+      font-size: 16px;
+      padding: 4px 8px;
+      width: 80px;
+      text-align: center;
+      margin-right: 5px;
+    }
   </style>
 </head>
 <body>
-  <h2>20秒倒數</h2>
-  <div id="timer">20</div>
+  <h2>倒數計時器</h2>
+  <div id="timer">20.0</div>
+  <div id="count">已完成 0 次</div>
   <button id="startBtn">開始</button>
   <button id="stopBtn">停止</button>
+  <br><br>
+  <input type="number" id="timeInput" value="20" min="0.1" step="0.1">
+  <button id="setTimeBtn">設定秒數</button>
+  <br><br>
+  <button id="pipBtn">子母視窗</button>
+
+  <!-- PiP 隱藏元素 -->
+  <video id="pipVideo" hidden playsinline></video>
+  <canvas id="pipCanvas" width="200" height="100" hidden></canvas>
 
   <script>
     let countdown;
-    let timeLeft = 20;
+    let timeLeft = 20.0;
+    let resetTime = 20.0;
     let isRunning = false;
     let blinkInterval;
+    let count = 0;
 
     const timerDisplay = document.getElementById('timer');
+    const countDisplay = document.getElementById('count');
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
+    const timeInput = document.getElementById('timeInput');
+    const setTimeBtn = document.getElementById('setTimeBtn');
+    const pipBtn = document.getElementById('pipBtn');
+    const pipVideo = document.getElementById('pipVideo');
+    const pipCanvas = document.getElementById('pipCanvas');
+    const ctx = pipCanvas.getContext("2d");
 
+    // 計時器功能 (支援 0.1s 精度)
     function startTimer() {
       if (isRunning) return;
       isRunning = true;
-      timeLeft = 19
+      timeLeft = resetTime;
       countdown = setInterval(() => {
-        timerDisplay.textContent = timeLeft;
+        timerDisplay.textContent = timeLeft.toFixed(1);
 
         // 剩下 3 秒開始閃爍
         if (timeLeft <= 3 && timeLeft > 0) {
@@ -62,15 +96,19 @@
           }
         }
 
-        timeLeft--;
+        timeLeft -= 0.1; // 每次減 0.1 秒
 
         if (timeLeft < 0) {
-          timeLeft = 20; // 重設倒數
+          // 完成一次
+          count++;
+          countDisplay.textContent = "已完成 " + count + " 次";
+
+          timeLeft = resetTime;
           clearInterval(blinkInterval);
           blinkInterval = null;
           timerDisplay.classList.remove("blink");
         }
-      }, 1000);
+      }, 100); // 每 100ms 更新一次
     }
 
     function stopTimer() {
@@ -78,13 +116,58 @@
       clearInterval(blinkInterval);
       blinkInterval = null;
       isRunning = false;
-      timeLeft = 20;
-      timerDisplay.textContent = timeLeft;
+      timeLeft = resetTime;
+      timerDisplay.textContent = timeLeft.toFixed(1);
       timerDisplay.classList.remove("blink");
     }
 
+    // 修改秒數
+    setTimeBtn.addEventListener("click", () => {
+      const newTime = parseFloat(timeInput.value);
+      if (!isNaN(newTime) && newTime > 0) {
+        resetTime = newTime;
+        timeLeft = resetTime;
+        timerDisplay.textContent = resetTime.toFixed(1);
+      }
+    });
+
     startBtn.addEventListener('click', startTimer);
     stopBtn.addEventListener('click', stopTimer);
+
+    // --- 子母視窗 (PiP) ---
+    const pipStream = pipCanvas.captureStream();
+    pipVideo.srcObject = pipStream;
+
+    // 保險起見：確保能播放
+    pipVideo.play().catch(() => {});
+
+    function updateCanvas() {
+      ctx.clearRect(0, 0, pipCanvas.width, pipCanvas.height);
+      ctx.fillStyle = "black";
+      ctx.fillRect(0, 0, pipCanvas.width, pipCanvas.height);
+      ctx.fillStyle = "white";
+      ctx.font = "48px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(timeLeft.toFixed(1), pipCanvas.width / 2, pipCanvas.height / 2 + 15);
+      ctx.font = "18px Arial";
+      ctx.fillText("第 " + count + " 次", pipCanvas.width / 2, pipCanvas.height - 10);
+      requestAnimationFrame(updateCanvas);
+    }
+    updateCanvas();
+
+    pipBtn.addEventListener("click", async () => {
+      try {
+        if (document.pictureInPictureElement) {
+          await document.exitPictureInPicture();
+        } else {
+          // 先確保影片有在跑
+          await pipVideo.play();
+          await pipVideo.requestPictureInPicture();
+        }
+      } catch (err) {
+        alert("此瀏覽器或環境不支援 Picture-in-Picture");
+      }
+    });
   </script>
 </body>
 </html>
